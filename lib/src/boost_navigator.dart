@@ -116,6 +116,13 @@ class BoostNavigator {
     return appState!.popUntil(route: route, uniqueId: uniqueId);
   }
 
+  /// PopUntil page off the hybrid stack.
+  Future<void> popOrUntil({List<String>? routes, String? uniqueId}) async {
+    assert(
+    appState != null, 'Please check if the engine has been initialized!');
+    return appState!.popOrUntil(routes: routes, uniqueId: uniqueId);
+  }
+
   /// Remove the page with the given [uniqueId] from hybrid stack.
   ///
   /// This API is for backwards compatibility.

@@ -459,6 +459,71 @@ class FlutterBoostAppState extends State<FlutterBoostApp> {
     }
   }
 
+  void popOrUntil({List<String>? routes, String? uniqueId}) async {
+    BoostContainer? targetContainer;
+    BoostPage? targetPage;
+    int popUntilIndex = _containers.length;
+    if (uniqueId != null) {
+      for (int index = _containers.length - 1; index >= 0; index--) {
+        for (BoostPage page in _containers[index].pages) {
+          if (uniqueId == page.pageInfo.uniqueId ||
+              uniqueId == _containers[index].pageInfo.uniqueId) {
+            //uniqueId优先级更高，优先匹配
+            targetContainer = _containers[index];
+            targetPage = page;
+            break;
+          }
+        }
+        if (targetContainer != null) {
+          popUntilIndex = index;
+          break;
+        }
+      }
+    }
+
+    if (targetContainer == null && routes != null) {
+      for (int index = _containers.length - 1; index >= 0; index--) {
+        for (BoostPage page in _containers[index].pages) {
+          if (routes.contains(page.name)) {
+            targetContainer = _containers[index];
+            targetPage = page;
+            break;
+          }
+        }
+        if (targetContainer != null) {
+          popUntilIndex = index;
+          break;
+        }
+      }
+    }
+
+    if (targetContainer != null && targetContainer != topContainer) {
+      /// _containers item index would change when call 'nativeRouterApi.popRoute' method with sync.
+      /// clone _containers keep original item index.
+      List<BoostContainer> containersTemp = [..._containers];
+      for (int index = containersTemp.length - 1;
+      index > popUntilIndex;
+      index--) {
+        BoostContainer container = containersTemp[index];
+        final params = CommonParams()
+          ..pageName = container.pageInfo.pageName
+          ..uniqueId = container.pageInfo.uniqueId
+          ..arguments = {"animated": false};
+        await nativeRouterApi.popRoute(params);
+      }
+
+      if (targetContainer.topPage != targetPage) {
+        Future<void>.delayed(
+            const Duration(milliseconds: 50),
+                () => targetContainer?.navigator
+                ?.popUntil(ModalRoute.withName(targetPage!.name!)));
+      }
+    } else {
+      topContainer?.navigator?.popUntil(ModalRoute.withName(targetPage!.name!));
+    }
+  }
+
+
   Future<bool> pop(
       {String? uniqueId, Object? result, bool onBackPressed = false}) async {
     if (topContainer == null) return false;
